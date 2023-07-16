@@ -4,6 +4,8 @@ from kivy.app import App
 from kivy.uix.widget import Widget 
 from kivy_garden.graph import Graph, LinePlot
 from kivy.clock import Clock
+from plyer import accelerometer
+from plyer import gravity
 
 from kivy.lang import Builder
 Builder.load_file("app2.kv")
@@ -22,6 +24,10 @@ class app2(Widget):
         self.graph = None
         self.plot = None
         self.start_function = None
+        self.sensorEnabled= False
+        self.acc= np.array([0, 0, 0])
+        self.grav= np.array([0, 0, 0])
+        self.lineal= np.array([0, 0, 0])
 
         self.start_plot()
 
@@ -45,7 +51,7 @@ class app2(Widget):
             self.ids.start_button.disabled = False
 
     def update_label(self, *args):
-        self.numbers.append(self.generate_number())
+        self.numbers.append(self.read_accelerometer)
         self.time_list.append(self.time_counter)
         self.time_counter += self.time_step
 
@@ -64,8 +70,28 @@ class app2(Widget):
         self.time_counter = 0
         self.time_list = []
 
-    def generate_number(self):
-        return np.random.uniform(self.ymin_plot, self.ymax_plot)
+    def read_accelerometer(self, dt):
+        self.acc= np.asarray(accelerometer.acceleration)
+        self.grav= np.asarray(gravity.gravity)
+        test= self.acc[0]- self.grav[0] #THIS LINE CRASHES THE APP!!
+        self.root.ids['a_x'].text= f"{str(self.acc)}"
+        self.root.ids['a_y'].text= f"{str(type(self.acc))}"
+        self.root.ids['a_z'].text= " "
+        #self.root.ids['g_x'].text= " "
+        #self.root.ids['g_y'].text= " "
+        self.root.ids['g_z'].text=f"{self.acc- self.grav}"
+        # return np.random.uniform(self.ymin_plot, self.ymax_plot)
+
+    def begin_read(self):
+        if not self.sensorEnabled:
+            accelerometer.enable()
+            gravity.enable()
+            Clock.schedule_interval(self.leer_accel, 1/100)
+            self.sensorEnabled= True
+        else:
+            accelerometer.disable()
+            Clock.unschedule(self.leer_accel)
+            self.sensorEnabled= False              
     
 class MainApp(App):
     def build(self):
